@@ -150,8 +150,6 @@ MonoBehaviour:
   WalkSpeed: 10
   JumpPower: 7
   Floors: []
-  ThirdPersonCam: {fileID: 0}
-  CharacterModel: {fileID: 0}
 --- !u!33 &482221579600312133
 MeshFilter:
   m_ObjectHideFlags: 0
