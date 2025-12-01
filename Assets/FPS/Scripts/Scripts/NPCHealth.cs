@@ -6,15 +6,30 @@ namespace Assets.FPS.Scripts
     public class NPCHealth : MonoBehaviour
     {
         // Renamed 'health' from original script for clarity in this example
-        public float currentHealth = 10f;
+        // Using int type for consistency with the initial code snippet provided
+        public int maxHealth = 100;
+        private int currentHealth;
 
         // This reference is set by the NPCSpawner when the NPC is created.
-        // Using 'internal set' is fine, or revert to the original public field with [HideInInspector]
         public NPCSpawner spawner { get; internal set; }
 
-        public void TakeDamage(float amount)
+        void Start()
         {
+            // Initialize health when the NPC spawns
+            currentHealth = maxHealth;
+        }
+
+        // Changed parameter type to int for consistency with the provided code snippet
+        public void TakeDamage(int amount)
+        {
+            // Optional: Prevent processing damage if already dead
+            if (currentHealth <= 0)
+            {
+                return;
+            }
+
             currentHealth -= amount;
+
             if (currentHealth <= 0)
             {
                 // Pass the notification method to the Die function
@@ -44,15 +59,10 @@ namespace Assets.FPS.Scripts
             respawnAction?.Invoke();
 
             // Add death effects here (e.g., animations, particle effects, sounds)
+            Debug.Log(gameObject.name + " has died!");
 
             // Destroy the current NPC instance
             Destroy(gameObject);
         }
-
-        /* 
-         * The StartRespawn(), RespawnRoutine(), SpawnNPC(), Start(), 
-         * npcPrefab, spawnPoint, and respawnTime variables were removed from here 
-         * because they belong in the NPCSpawner script, not here.
-         */
     }
 }
