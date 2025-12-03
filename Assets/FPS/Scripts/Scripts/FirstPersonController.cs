@@ -7,9 +7,9 @@ public class FirstPersonController : MonoBehaviour
 {
     //The camera is inside the player
     public Camera Eyes;
-
     public Rigidbody RB;
     public Projectile3DController ProjectilePrefab;
+    public Transform Hands; // Added this back in from the previous answer
 
     //Character stats
     public float MouseSensitivity = 3;
@@ -19,7 +19,8 @@ public class FirstPersonController : MonoBehaviour
     //A list of all the solid objects I'm currently touching
     public List<GameObject> Floors;
 
-
+    // Variables to store current movement input
+    private Vector3 _moveDirection = Vector3.zero;
 
     void Start()
     {
@@ -28,56 +29,47 @@ public class FirstPersonController : MonoBehaviour
         Cursor.visible = false;
     }
 
-
     void Update()
     {
-        //If my mouse goes left/right my body moves left/right
+        // Handle rotation (Input is best checked in Update)
         float xRot = Input.GetAxis("Mouse X") * MouseSensitivity;
         transform.Rotate(0, xRot, 0);
-
-        //If my mouse goes up/down my aim (but not body) go up/down
         float yRot = -Input.GetAxis("Mouse Y") * MouseSensitivity;
         Eyes.transform.Rotate(yRot, 0, 0);
 
-        //Movement code
-        if (WalkSpeed > 0)
+        // Handle movement input (store direction for FixedUpdate)
+        _moveDirection = Vector3.zero;
+        if (Input.GetKey(KeyCode.W)) _moveDirection += transform.forward;
+        if (Input.GetKey(KeyCode.S)) _moveDirection -= transform.forward;
+        if (Input.GetKey(KeyCode.A)) _moveDirection -= transform.right;
+        if (Input.GetKey(KeyCode.D)) _moveDirection += transform.right;
+
+        // Normalize input and apply speed
+        _moveDirection = _moveDirection.normalized * WalkSpeed;
+
+        // Handle Jump Input
+        if (JumpPower > 0 && Input.GetKeyDown(KeyCode.Space) && OnGround())
         {
-            //My temp velocity variable
-            Vector3 move = Vector3.zero;
-
-            //transform.forward/right are relative to the direction my body is facing
-            if (Input.GetKey(KeyCode.W))
-                move += transform.forward;
-            if (Input.GetKey(KeyCode.S))
-                move -= transform.forward;
-            if (Input.GetKey(KeyCode.A))
-                move -= transform.right;
-            if (Input.GetKey(KeyCode.D))
-                move += transform.right;
-            //I reduce my total movement to 1 and then multiply it by my speed
-            move = move.normalized * WalkSpeed;
-
-            //If I hit jump and am on the ground, I jump
-            if (JumpPower > 0 && Input.GetKeyDown(KeyCode.Space) && OnGround())
-                move.y = JumpPower;
-            else  //Otherwise, my Y velocity is whatever it was last frame
-                move.y = RB.linearVelocity.y;
-
-            //Plug my calculated velocity into the rigidbody
-            RB.linearVelocity = move;
+            // Apply instant vertical velocity change for the jump itself
+            RB.linearVelocity = new Vector3(RB.linearVelocity.x, JumpPower, RB.linearVelocity.z);
         }
 
-        //If I click. . .
-        if (Input.GetMouseButtonDown(0))
+        // Handle shooting (Input is best checked in Update)
+        if (Input.GetMouseButtonDown(0) && Hands != null)
         {
-            //Spawn a projectile right in front of my eyes
-            Instantiate(ProjectilePrefab, Eyes.transform.position + Eyes.transform.forward,
-                Eyes.transform.rotation);
+            Instantiate(ProjectilePrefab, Hands.transform.position, Hands.transform.rotation);
         }
     }
 
-    //I count as being on the ground if I'm touching at least one solid object
-    //This isn't a perfect way of doing this. Can you think of at least one way it might go wrong?
+    // Use FixedUpdate for applying physics forces/velocity to the Rigidbody
+    void FixedUpdate()
+    {
+        // Apply calculated horizontal movement, keeping existing Y velocity (gravity will handle this)
+        Vector3 newVelocity = new Vector3(_moveDirection.x, RB.linearVelocity.y, _moveDirection.z);
+        RB.linearVelocity = newVelocity;
+    }
+
+    // ... (OnGround, OnCollisionEnter, OnCollisionExit methods remain the same) ...
     public bool OnGround()
     {
         return Floors.Count > 0;
@@ -85,15 +77,11 @@ public class FirstPersonController : MonoBehaviour
 
     private void OnCollisionEnter(Collision other)
     {
-        //If I touch something and it's not already in my list of things I'm touching. . .
-        //Add it to the list
-        if (!Floors.Contains(other.gameObject))
-            Floors.Add(other.gameObject);
+        if (!Floors.Contains(other.gameObject)) Floors.Add(other.gameObject);
     }
 
     private void OnCollisionExit(Collision other)
     {
-        //When I stop touching something, remove it from the list of things I'm touching
         Floors.Remove(other.gameObject);
     }
 }
